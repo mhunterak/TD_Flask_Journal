@@ -1,38 +1,46 @@
-# --------------------------------
-# Python Web Development Techdegree
-# Project 5 - Flask Journal
-# by Maxwell Hunter
-# follow me on GitHub @mHunterAK
-# --------------------------------
+'''
+Python Web Development Techdegree
+Project 5 - Flask Journal
+by Maxwell Hunter
+follow me on GitHub @mHunterAK
 
-# MODELS is the root script, and is only ever imported from higher level
-# script flask_journal.py
+    I am aiming for the
+    Exceeds Expectations grade on this project!
 
+    models.py is the lowest level script,
+    and is only ever imported from higher level script flask_journal.py (views)
+
+'''
+# Core
+from datetime import datetime as dt  # pragma: no cover
+from re import compile, sub  # pragma: no cover
+from unicodedata import normalize  # pragma: no cover
+
+# 3rd party
 from flask import Markup  # pragma: no cover
-from flask_bcrypt import generate_password_hash, check_password_hash  # pragma: no cover
+from flask_bcrypt import (
+    generate_password_hash, check_password_hash)  # pragma: no cover
 from flask_login import UserMixin, login_user, logout_user  # pragma: no cover
 from peewee import (Model, SqliteDatabase,
                     DateTimeField, TextField, IntegerField, ForeignKeyField,
                     InterfaceError,
                     )  # pragma: no cover
-from unicodedata import normalize  # pragma: no cover
-from datetime import datetime as dt  # pragma: no cover
-from re import compile  # pragma: no cover
 
-
+# Global variables
 _punct_ = compile(
     r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')  # pragma: no cover
+# imported by flask_journal
 DEBUG = True
 
-
+# DB setup
 if DEBUG:
     DATABASE = SqliteDatabase('TESTING_flask_journal.db')
 else:  # pragma: no cover
     DATABASE = SqliteDatabase('flask_journal.db')
 
-##########
-# MODELS #
-##########
+'''
+MODELS
+'''
 
 
 # create a base model, since every entry uses the same database
@@ -61,10 +69,14 @@ class User(UserMixin, BaseModel):
         )
 
     @classmethod
+    # main class method for logging in a user
+    # checks for a user, and verifies their password
     def login_user(self, username, password):
         user = User.get(User.username == username)
         if check_password_hash(user.password, password):
             login_user(user, remember=True)
+            return True
+        return False
 
     @classmethod
     def logout(self):
@@ -147,7 +159,7 @@ class Entry(BaseModel):
         if date:
             self.date = dt.strptime(
                 date,
-                '%Y-%m-%d', 
+                '%Y-%m-%d',
                 )
         # time spent
         if time_spent:
@@ -227,7 +239,7 @@ class Entry(BaseModel):
             return '{} weeks'.format(self.time_spent / 10080)
         # years
         else:
-            # numbers thanks to: 
+            # numbers thanks to:
             # https://www.quora.com/How-many-minutes-are-there-in-a-year
             return '{} years'.format(self.time_spent / 525949)
 
@@ -240,7 +252,23 @@ class Entry(BaseModel):
                 tag.delete_instance()
             self.delete_instance()
 
-    # def add_tag(self, tagname):
+    def add_tags(self, inputstr):
+        # separate by comma
+        tags = inputstr.split(',')
+        for i, tagstr in enumerate(tags):
+            # remove whitespace
+            tags[i] = sub('\W', '', tagstr)
+        # if there are tags left
+        if len(tags):
+            # for the list of tags left
+            for tag in tags:
+                if len(tag):
+                    # create a new tag for the entry
+                    self.create_tag(tag)
+            return tags
+        else:
+            return False
+
     def create_tag(
         self,
         tagname,
@@ -280,6 +308,7 @@ class Tag(BaseModel):
             tagname=tagname,
             tagged_post=tagged_post,
         )
+
 
 def initialize():
     # open database connection
@@ -370,6 +399,14 @@ scelerisque sapien.''',
                 learned=entry[3],
                 resources=Markup(entry[4])
                 ),
+
+        # Add default tags
+        entry = Entry.get_entry_from_slug(
+            'the-best-day-i-ve-ever-had')
+        entry.add_tags('best, day')
+        entry = Entry.get_entry_from_slug(
+            'the-absolute-worst-day-i-ve-ever-had')
+        entry.add_tags('worst, day')
 
         # Add default user
         User.create_user(

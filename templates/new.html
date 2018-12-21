@@ -6,9 +6,9 @@
                 <div class="new-entry">
                     <h2>New Entry</h2>
                     <form method="POST">
-                        <input id="title" type="text" name="title" placeholder="Title"><br>
-                        <input id="date" type="date" name="date"><br>
-                        <input id="time-spent" type="text" name="timeSpent" placeholder="Time Spent"><br>
+                        <input id="title" type="text" name="title" placeholder="Title" required><br>
+                        <input id="date" type="date" name="date" required><br>
+                        <input id="time-spent" type="number" name="timeSpent" placeholder="Time Spent (in minutes)" required><br>
                         <textarea id="what-i-learned" rows="5" name="whatILearned" placeholder="What I Learned"></textarea>
                         <textarea id="resources-to-remember" rows="5" name="ResourcesToRemember" placeholder="Resources to Remember (HTML Frienndly)"></textarea>
                         <input action="" type="submit" value="Publish" class="button">

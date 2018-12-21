@@ -3,20 +3,20 @@
         <section>
             <div class="container">
                 <div class="entry-list">
+                    <h1 class='entry-list'>All Entries</h1>
                     {% for entry in entries %}
                     <article>
                         <h2><a href="/entries/{{ entry.slugify_title()}}"">{{ entry.title }}</a></h2>
                         <time datetime="{{ entry.get_datetime_string() }}">{{ entry.get_date_string() }}</time>
                         <br/><br/>
                         {% for tag in entry.get_tags() %}
-                        <a href="{{ url_for('all_tags') }}" class='button icon-left tag'>
+                        <a href="{{ url_for('show_entries_with_tag', tagname=tag.tagname) }}" class='button icon-left tag'>
                             <span>
-                                    {{ tag.tagname }}
-                                    <i class="material-icons">tag</i>
+                                {{ tag.tagname }}
+                                <i class="material-icons">tag</i>
                             </span>
                         </a>
                         {% endfor %}
-
                     </article>
                     {% endfor %}
                 </div>

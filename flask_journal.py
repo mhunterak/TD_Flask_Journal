@@ -1,13 +1,30 @@
-# --------------------------------
-# Python Web Development Techdegree
-# Project 5 - Flask Journal
-# by Maxwell Hunter
-# follow me on GitHub @mHunterAK
-#
-# I am aiming for the
-# Exceeds Expectations grade on this project!
-# --------------------------------
+'''
+Python Web Development Techdegree
+Project 5 - Flask Journal
+by Maxwell Hunter
+follow me on GitHub @mHunterAK
 
+    I am aiming for the
+    Exceeds Expectations grade on this project!
+
+    flask_journal.py
+        Main app script, that houses the flask script and view rendering
+
+'''
+
+# Core
+from random import choice as random_choice  # pragma: no cover
+
+# 3rd party
+from flask import (   # pragma: no cover
+    Flask,
+    request, flash,
+    Markup, render_template, redirect, url_for
+    )
+from flask_login import (  # pragma: no cover
+    LoginManager, login_required)
+
+# Custom
 # models holds the object blueprints, and method for initializing the database
 from models import (
     DEBUG,  # Global variables
@@ -15,20 +32,10 @@ from models import (
     initialize  # functions
 )
 
-from datetime import datetime as dt  # pragma: no cover
-from random import choice as random_choice  # pragma: no cover
-from re import sub  # pragma: no cover
-from flask import (   # pragma: no cover
-    Flask,
-    request, flash,
-    Markup, render_template, redirect, url_for
-    )
-from flask_bcrypt import check_password_hash  # pragma: no cover
-from flask_login import (  # pragma: no cover
-    LoginManager, login_required
-)
+# app initialization
 app = Flask(__name__, static_url_path='/static')
-key_choices = u'abcdefgh0123456789'
+# build secret key with hexadecimal (needed for flash)
+key_choices = u'abcdef0123456789'
 key = ''
 for i in range(32):
     key += random_choice(key_choices)
@@ -45,6 +52,7 @@ def load_user(userid):
         return User.get(User.id == userid)
     except User.DoesNotExist:
         return None
+
 
 @app.route('/logout')
 def logout():
@@ -68,6 +76,7 @@ def render_view(page, **kwargs):
         **kwargs
     )
 
+
 # TODONE XC: Create password protection or user login.
 @app.route('/login', methods=('GET', 'POST'))
 def login():
@@ -77,35 +86,28 @@ def login():
         # because they weren't logged in
         next = request.args.get('next')
         # try to log them in
-        try:
-            # get the user they're trying to log in as
-            user=User.get(User.username == request.form['username'])
-            # if their password is valid
-            if check_password_hash(user.password, request.form['password']):
-                # log them in
-                User.login_user(
-                    request.form['username'],
-                    request.form['password'])
-                # show login message
-                flash('Log in successful, welcome back {}'.format(request.form['username']))
-            else:
-                # if the password is incorrect, tell them the user doesn't exist
-                raise User.DoesNotExist
-            # if there's another page to forward to after logging in
+        # log them in
+        if User.login_user(
+                request.form['username'],
+                request.form['password']):
+            # show login message
+            flash('Log in successful, welcome back {}'.format(
+                request.form['username']))
             if next:
+                # if there's another page to forward to after logging in
                 # forward them to that page
                 return redirect(next)
             else:
                 # if there's nowhere to forward to, send them to the index page
                 return redirect(url_for('index'))
-        # if the user is not found or password is incorrect
-        except User.DoesNotExist:
-            # tell them so
-            flash("Username or password incorrect, please try again")
-    # render the login form
+        else:
+            # if the username or password is invalid, tell them so
+            flash("Username or password invalid, please try again")
+    # if they're not submitting a form, render the login form
     return render_view('login.html')
 # TODONE XC: provide credentials for code review.
 # SEE README.md
+
 
 # TODONE Add ALL necessary routes for the application:
 @app.route('/index.html')
@@ -119,12 +121,12 @@ def index():
         url_for('entry_list')
         )
 
-
 # TODONE route for entries list
 # TODONE necessary routes /entries
 # TODONE Create 'list' view using the route /entries.
 # TODONE Title should be hyperlinked to the detail page for each
 #        journal entry.
+
 
 @app.route('/entries')
 @app.route('/entries/')
@@ -194,7 +196,6 @@ def details_by_slug(slug):
         )
 
 
-
 # TODONE Include a link to edit the entry.
 #      /entries/edit/<slug>
 # TODONE necessary routes /entries/edit/<slug>
@@ -252,6 +253,7 @@ def delete_entry(slug):
         entry=entry,
     )
 
+
 @app.route('/entries/<slug>/tag', methods=('GET', 'POST'))
 @login_required
 # add new tags
@@ -260,23 +262,14 @@ def tag_entry(slug):
     entry = Entry.get_entry_from_slug(slug)
     # if the form is submitted,
     if request.method == 'POST':
-        # load the input text
-        input = request.form['tags']
-        # remove whitespace
-        tagstr = sub('\w', '', input)
-        # separate by comma
-        tags = tagstr.split(',')
-        # if there are tags left
-        if len(tag):
-            # for the list of tags left
-            for tag in tags:
-                # create a new tag for the entry
-                entry.create_tag(tag)
+        entry.add_tag(request.form['tags'])
+    # if not submitting, render the form
     return render_view(
         'tag.html',
         entry=entry,
         slug=slug
         )
+
 
 # TODONE show entries that have a specific tag
 @app.route('/tags/<tagname>')
@@ -288,6 +281,7 @@ def show_entries_with_tag(tagname):
         tagname=tagname,
         tags=tags,
     )
+
 
 # TODONE Selecting tag takes you to a list of specific tags
 @app.route('/alltags')
