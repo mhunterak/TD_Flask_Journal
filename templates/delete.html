@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+        <section>
+            <div class="container">
+                <div class="new-entry">
+                    <form method="POST">
+                        <h2>Are you sure you want to delete "{{ entry.title }}"?</h2>
+                        <input id="delete_confirm" type="text" name='delete_confirm' placeholder="Type 'DELETE' to delete entry">
+                    </form>
+                </div>
+            </div>
+        </section>
+{% endblock %}

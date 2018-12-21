@@ -5,13 +5,25 @@
 # follow me on GitHub @mHunterAK
 # --------------------------------
 
-from peewee import (Model, SqliteDatabase,
-                    DateTimeField, TextField, IntegerField
-                    )  # pragma: no cover
-import os
+# MODELS is the root script, and is only ever imported from higher level
+# script flask_journal.py
 
-# i
-DEBUG = os.environ['FLASK_DEBUG'] is not 'production'
+from flask import Markup  # pragma: no cover
+from flask_bcrypt import generate_password_hash, check_password_hash  # pragma: no cover
+from flask_login import UserMixin, login_user, logout_user  # pragma: no cover
+from peewee import (Model, SqliteDatabase,
+                    DateTimeField, TextField, IntegerField, ForeignKeyField,
+                    InterfaceError,
+                    )  # pragma: no cover
+from unicodedata import normalize  # pragma: no cover
+from datetime import datetime as dt  # pragma: no cover
+from re import compile  # pragma: no cover
+
+
+_punct_ = compile(
+    r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')  # pragma: no cover
+DEBUG = True
+
 
 if DEBUG:
     DATABASE = SqliteDatabase('TESTING_flask_journal.db')
@@ -30,12 +42,46 @@ class BaseModel(Model):
         database = DATABASE
 
 
+# create a Peewee model class for Users
+class User(UserMixin, BaseModel):
+    # username must be unique
+    username = TextField(
+        unique=True)
+    # both are case-sensitive
+    password = TextField(
+        )
+
+    @classmethod
+    def create_user(self, username, password):
+        return self.create(
+            username=username,
+            # save the user's password as a hash, so no one can hack the
+            # database and get the user's passwords
+            password=generate_password_hash(password),
+        )
+
+    @classmethod
+    def login_user(self, username, password):
+        user = User.get(User.username == username)
+        if check_password_hash(user.password, password):
+            login_user(user, remember=True)
+
+    @classmethod
+    def logout(self):
+        return logout_user()
+
+
 # create a Peewee model class for journal entries.
 class Entry(BaseModel):
     # Title
-    title = TextField()
+    title = TextField(
+        unique=True,
+        null=False,
+    )
     # Date
-    date = DateTimeField()
+    date = DateTimeField(
+        null=False
+    )
     # Time Spent
     time_spent = IntegerField()
     # What You Learned
@@ -50,33 +96,36 @@ class Entry(BaseModel):
     )
 
     # override the ability to add a journal entry
-    def create(
+    @classmethod
+    def create_entry(
         self,
-        # Title
-        title,
-        # Date
-        date,
-        # Time Spent
-        time_spent,
-        # What You Learned
-        learned="",
-        # Resources to Remember
-        resources="",
+        title,  # Title
+        date,  # Date
+        time_spent,  # Time Spent
+        learned,  # What You Learned
+        resources,  # Resources to Remember
             ):
-        return Entry.create(
-            # Title
-            title=title,
-            # Date
-            date=date,
-            # Time Spent
-            time_spent=time_spent,
-            # What You Learned
-            learned=learned,
-            # Resources to Remember
-            resources=resources,
-        )
+        try:
+            return Entry.create(
+                # Title
+                title=title,
+                # Date
+                date=dt.strptime(
+                    date,
+                    '%Y-%m-%d',
+                    ),
+                # Time Spent
+                time_spent=int(time_spent),
+                # What You Learned
+                learned=str(learned),
+                # Resources to Remember
+                resources=Markup(resources)
+            )
+        except InterfaceError:
+            print("peewee had an InterfaceError.")
 
     # Add the ability to edit a journal entry
+
     def edit(
             self,
             # Title
@@ -84,35 +133,246 @@ class Entry(BaseModel):
             # Date
             date,
             # Time Spent
-            time_spent,
+            time_spent=0,
             # What You Learned
             learned="",
             # Resources to Remember
             resources="",
     ):
+        # only update fields that were changed
         # title
-        self.title = title,
-        # Date
-        self.date = date,
-        # Time Spent
-        self.time_spent = time_spent,
+        if title:
+            self.title = title
+        # date
+        if date:
+            self.date = dt.strptime(
+                date,
+                '%Y-%m-%d', 
+                )
+        # time spent
+        if time_spent:
+            self.time_spent = time_spent
         # What You Learned
-        self.learned = learned,
+        if learned:
+            self.learned = learned
         # Resources to Remember
-        self.resources = resources,
+        if resources:
+            self.resources = resources
+        # save back into the database
+        self.save()
+        # return success if no errors occur
+        return True
+
+    # returns the title in slugified form
+    def slugify_title(self):
+        return self.slugify(
+            str(self.title)
+            )
+
+    # turns ugly URL`s into nice slug
+    # based on code by Amin Ronacher - Generating Slugs (2010-05-03)
+    # retreieved from http://flask.pocoo.org/snippets/5/
+    @staticmethod
+    def slugify(text):
+        """Generates an ASCII-only slug."""
+        result = []
+        for word in _punct_.split(text.lower()):
+            word = normalize('NFKC', word)
+            if word:
+                result.append(word)
+        return str(
+            '-'.join(result)
+        )
+
+    @staticmethod
+    # retrieves an entry based on its slug
+    def get_entry_from_slug(slug):
+        entries = Entry.select()
+        for entry in entries:
+            if entry.slugify_title() == slug:
+                return entry
+
+    # get the datetime string (2016-01-31 format)
+    def get_datetime_string(self):
+        # get date from datefield
+        return self.date.strftime('%Y-%m-%d')
+
+    # from the entry model, return the date as a formatted string
+    def get_date_string(self):
+        # get date from database
+        # saved as a string, convert it do datetime
+        try:
+            date_as_datetime = dt.strptime(self.date, "%Y-%m-%d")
+        # if it's already a datetime (it should be)
+        except TypeError:
+            date_as_datetime = self.date
+        return date_as_datetime.strftime(
+                # display formated date
+                "%B %d, %Y"
+                )
+
+    # converts minutes into larger time increments when appropriate
+    def display_time_spent(self):
+        # minutes
+        if self.time_spent < 60:
+            return '{} minutes'.format(self.time_spent)
+        # hours
+        if self.time_spent < 1440:
+            return '{} hours'.format(self.time_spent / 60)
+        # days
+        if self.time_spent < 10080:
+            return '{} days'.format(self.time_spent / 1440)
+        # weeks
+        if self.time_spent < 44640:
+            return '{} weeks'.format(self.time_spent / 10080)
+        # years
+        else:
+            # numbers thanks to: 
+            # https://www.quora.com/How-many-minutes-are-there-in-a-year
+            return '{} years'.format(self.time_spent / 525949)
 
     # Add the ability to delete a journal entry
-    def delete(self):
+    def delete_entry(self):
         # goodbye, cruel world
-        self.delete_instance()
+        with DATABASE.atomic():
+            tags = Tag.select().where(Tag.tagged_post == self)
+            for tag in tags:
+                tag.delete_instance()
+            self.delete_instance()
 
+    # def add_tag(self, tagname):
+    def create_tag(
+        self,
+        tagname,
+    ):
+
+        existing_tags = Tag.select().where(
+            (Tag.tagged_post == self.id)
+        )
+        for tag in existing_tags:
+            if tag.tagname == tagname:
+                return tag
+        return Tag.create_tag(
+            tagname=tagname,
+            tagged_post=self,
+        )
+
+    def get_tags(self):
+        return Tag.select().where(Tag.tagged_post == self).order_by(
+            Tag.tagname.asc())
+
+
+# TODONE XC: Add tags to journal entries in the model.
+class Tag(BaseModel):
+    tagname = TextField(
+        null=False
+    )
+    tagged_post = ForeignKeyField(
+        Entry,
+        related_name='tag',
+    )
+
+    def create_tag(
+        tagname,
+        tagged_post
+    ):
+        return Tag.create(
+            tagname=tagname,
+            tagged_post=tagged_post,
+        )
 
 def initialize():
     # open database connection
     DATABASE.connect()
     # create tables, if they don't exist
-    DATABASE.create_tables([Entry], safe=True)
+    DATABASE.create_tables([Entry, User, Tag], safe=True)
     # close database connection
     DATABASE.close()
+
+    setup_dummy_content()
     # return success
     return True
+
+
+def setup_dummy_content():
+    # if dummy data is not available (No Entries Available)
+    try:
+        Entry.get()
+    except Entry.DoesNotExist:
+        print('No Entries Available!')
+        print('Initializing default entries')
+        default_entries = [
+            [
+                "The best day I've ever had",
+                '2016-01-31',
+                900,
+                '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
+Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
+pulvinar sem nunc vel augue. In ornare tempor metus, sit amet congue justo
+porta et. Etiam pretium, sapien non fermentum consequat, dolor augue gravida
+lacus, non accumsan. Vestibulum ut metus eleifend, malesuada nisl at,
+scelerisque sapien.''',
+                '''<li><a href="">Lorem ipsum dolor sit amet</a></li>
+<li><a href="">Cras accumsan cursus ante, non dapibus tempor</a></li>
+<li>Nunc ut rhoncus felis, vel tincidunt neque</li>
+<li><a href="">Ipsum dolor sit amet</a></li>
+''',
+                '',
+            ],
+            [
+                "The absolute worst day I've ever had",
+                '2016-01-31',
+                900,
+                '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
+Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
+pulvinar sem nunc vel augue. In ornare tempor metus, sit amet congue justo
+porta et. Etiam pretium, sapien non fermentum consequat, dolor augue gravida
+lacus, non accumsan. Vestibulum ut metus eleifend, malesuada nisl at,
+scelerisque sapien.''',
+                '',
+            ],
+            [
+                'That time at the mall',
+                '2016-01-31',
+                900,
+                '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
+Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
+pulvinar sem nunc vel augue. In ornare tempor metus, sit amet congue justo
+porta et. Etiam pretium, sapien non fermentum consequat, dolor augue gravida
+lacus, non accumsan. Vestibulum ut metus eleifend, malesuada nisl at,
+scelerisque sapien.''',
+                '',
+            ],
+            [
+                "Dude, where's my car?",
+                '2016-01-31',
+                900,
+                '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
+Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
+pulvinar sem nunc vel augue. In ornare tempor metus, sit amet congue justo
+porta et. Etiam pretium, sapien non fermentum consequat, dolor augue gravida
+lacus, non accumsan. Vestibulum ut metus eleifend, malesuada nisl at,
+scelerisque sapien.''',
+                '',
+            ],
+        ]
+
+        # Add default entries
+        for entry in default_entries:
+            Entry.create_entry(
+                title=entry[0],
+                date=entry[1],
+                time_spent=entry[2],
+                learned=entry[3],
+                resources=Markup(entry[4])
+                ),
+
+        # Add default user
+        User.create_user(
+            username="Mhunterak",
+            password="password",
+        )

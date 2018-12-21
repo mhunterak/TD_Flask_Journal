@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+        <section>
+            <div class="container">
+                <div class="edit-entry">
+                    <h1>Tag Entry: <br/></h1>
+                    <h2>{{ entry.title }}</h2>
+                    {% for tag in entry.get_tags() %}
+                    <a href="/tags/{{ tag.tagname }}" class='button icon-left tag'>
+                        <span>
+                                {{ tag.tagname }}
+                                <i class="material-icons">tag</i>
+                        </span>
+                    </a>
+                    {% endfor %}
+                    <form action='' method="POST">
+                        <input id="tags" type="text" name="tags" placeholder="Add New Tags (separated by ',')"><br>
+                        <input type="submit" value="publish" class="button material-icons" title='Publish Entry'>
+                        <a href="/entries/{{slug}}" class="button button-secondary material-icons" title="Cancel">cancel</a>
+                    </form>
+                </div>
+            </div>
+        </section>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+        <section>
+            <div class="container">
+                <div class="entry-list single">
+                    <article>
+                        <h1>All Tags</h1>
+                        <hr/><br/>
+                        {% if not tags %}
+                            <p>No tags have been made yet!</p>
+                        {% else %}
+                            {% for tag in tags %}
+                            <a href="/tags/{{ tag }}" class='button icon-left tag'>
+                                <span>
+                                        {{ tag }}
+                                        <i class="material-icons">tag</i>
+                                </span>
+                            </a>
+                            {% endfor %}
+                        {% endif %}
+                    </article>
+                </div>
+            </div>
+        </section>
+{% endblock %}
