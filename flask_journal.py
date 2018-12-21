@@ -262,7 +262,7 @@ def tag_entry(slug):
     entry = Entry.get_entry_from_slug(slug)
     # if the form is submitted,
     if request.method == 'POST':
-        entry.add_tag(request.form['tags'])
+        entry.add_tags(request.form['tags'])
     # if not submitting, render the form
     return render_view(
         'tag.html',
