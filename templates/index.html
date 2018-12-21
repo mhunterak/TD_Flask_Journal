@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% block content %}
+        <section>
+            <div class="container">
+                <div class="entry-list">
+                    {% for entry in entries %}
+                    <article>
+                        <h2><a href="/entries/{{ entry.slugify_title()}}"">{{ entry.title }}</a></h2>
+                        <time datetime="{{ entry.get_datetime_string() }}">{{ entry.get_date_string() }}</time>
+                        <br/><br/>
+                        {% for tag in entry.get_tags() %}
+                        <a href="{{ url_for('all_tags') }}" class='button icon-left tag'>
+                            <span>
+                                    {{ tag.tagname }}
+                                    <i class="material-icons">tag</i>
+                            </span>
+                        </a>
+                        {% endfor %}
+
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+{% endblock %}

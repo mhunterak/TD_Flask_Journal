@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+        <section>
+            <div class="container">
+                <div class="new-entry">
+                    <h2>New Entry</h2>
+                    <form method="POST">
+                        <input id="title" type="text" name="title" placeholder="Title"><br>
+                        <input id="date" type="date" name="date"><br>
+                        <input id="time-spent" type="text" name="timeSpent" placeholder="Time Spent"><br>
+                        <textarea id="what-i-learned" rows="5" name="whatILearned" placeholder="What I Learned"></textarea>
+                        <textarea id="resources-to-remember" rows="5" name="ResourcesToRemember" placeholder="Resources to Remember (HTML Frienndly)"></textarea>
+                        <input action="" type="submit" value="Publish" class="button">
+                        <a href="#" class="button button-secondary">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </section>
+{% endblock %}
