@@ -7,16 +7,18 @@
                     <article>
                         <h1>{{ entry.title }}</h1>
                         <time datetime="{{ entry.get_datetime_string() }}">{{ entry.get_date_string() }}</time>
-                        <hr/><br/>Tags
-                        {% for tag in entry.get_tags() %}
-                        <a href="/tags/{{ tag.tagname }}" class='button icon-left tag'>
-                            <span>
-                                    {{ tag.tagname }}
-                                    <i class="material-icons">tag</i>
-                            </span>
-                        </a>
-                        {% endfor %}
-                        <a class="button icon-right" href="/entries/{{ slug }}/tag"><span>Add Tag</span> <i class="material-icons">add</i></a>
+                        <br/>
+                        <div id="tags">
+                            {% for tag in entry.get_tags() %}
+                            <a href="/tags/{{ tag.tagname }}" class='button icon-left tag'>
+                                <span>
+                                        {{ tag.tagname }}
+                                        <i class="material-icons">tag</i>
+                                </span>
+                            </a>
+                            {% endfor %}
+                            <a class="button icon-right" href="/entries/{{ slug }}/tag"><span>Add Tag</span> <i class="material-icons">add</i></a>
+                        </div>
 
                         <div class="entry">
                             <h3>Time Spent: </h3>

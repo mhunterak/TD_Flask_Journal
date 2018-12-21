@@ -4,13 +4,14 @@
             <div class="container">
                 <div class="edit-entry">
                     <h1>Articles tagged with "{{ tagname }}"</h1>
+                    <hr/>
                     {% for tag in tags %}
                         <article>
                             <h2><a href="/entries/{{ tag.tagged_post.slugify_title()}}"">{{ tag.tagged_post.title }}</a></h2>
                             <time datetime="{{ tag.tagged_post.get_datetime_string() }}">{{ tag.tagged_post.get_date_string() }}</time>
                             <br/><br/>
                             {% for other_tag in tag.tagged_post.get_tags() %}
-                            <a href="/tags/{{ other_tag.tagname }}" class='button icon-left tag'>
+                            <a href="{{ url_for('show_entries_with_tag', tagname=other_tag.tagname) }}" class='button icon-left tag'>
                                 <span>
                                         {{ other_tag.tagname }}
                                         <i class="material-icons">tag</i>

@@ -34,6 +34,11 @@ footer {
 	border-top: 2px dotted #678f89;
 }
 
+ul.flashes  {
+	margin-left: 24px;
+	padding: 12px;
+}
+
 
 
 /* ==========================================================================
@@ -80,6 +85,11 @@ footer {
 
 .tag {
 	display: inline-block;
+	top: 24px;
+}
+
+#tags {
+	margin-top: 36px;
 }
 
 
@@ -98,10 +108,11 @@ h3 {
 }
 h1 {
 	font-size: 44px;
-	margin-bottom: 12px;
+	margin-bottom: 24px;
 }
 h2 {
 	font-size: 32px;
+	margin-top: 24px;
 }
 h2 a {
 	text-decoration: none;
@@ -147,9 +158,12 @@ ul li a {
 	margin: 0 auto;
 	padding: 70px 0 150px 0;
 }
+h1.entry-list {
+	text-align: center;
+}
 .edit-entry h2,
 .new-entry h2 {
-	margin-bottom: 35px;
+	margin-bottom: 12px;
 }
 .entry-list article {
 	margin-bottom: 70px;
@@ -166,6 +180,7 @@ ul li a {
 }
 .entry-list.single time {
 	font-size: 18px;
+	margin-bottom: 36px;
 }
 .entry {
 	max-width: 800px;
@@ -186,18 +201,19 @@ ul li a {
 	font-size: 18px;
 }
 
-
-
 /* ==========================================================================
    Form Styles
    ========================================================================== */
 
-
+form {
+	margin-top: 24px;
+}
 form label {
 	display: block;
 	margin-bottom: 8px;
 }
 form input[type=text],
+form input[type=number],
 form input[type=password],
 form input[type=date],
 form textarea {
