@@ -155,19 +155,22 @@ def add():
     # if the form is submitted
     if request.method == 'POST':
         # TODONE connect 'create_entry' class methed from Entry
-        entry = Entry.create_entry(
-            title=request.form['title'],
-            date=request.form['date'],
-            time_spent=request.form['timeSpent'],
-            learned=request.form['whatILearned'],
-            resources=request.form['ResourcesToRemember'],
-        )
+        try:
+            entry = Entry.create_entry(
+                title=request.form['title'],
+                date=request.form['date'],
+                time_spent=request.form['timeSpent'],
+                learned=request.form['whatILearned'],
+                resources=request.form['ResourcesToRemember'],
+            )
+            flash('Entry #{} created'.format(entry.id))
+            return redirect(url_for(
+                'details_by_slug',
+                slug=entry.slugify_title()))
+        except ValueError:
+            flash('Invalid Submission')
         # tell them the entry was created
-        flash('Entry #{} created'.format(entry.id))
         # forward to the details page
-        return redirect(url_for(
-            'details_by_slug',
-            slug=entry.slugify_title()))
     return render_view('new.html')
 
 
