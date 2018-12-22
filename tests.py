@@ -1,12 +1,16 @@
 import unittest
+import time
 
 from peewee import IntegrityError
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+
 
 import flask_journal
 import models
 
-
 # test models and views separately.
+
 
 class test_AA_Meta(unittest.TestCase):
     def test_AA_import(self):
@@ -74,7 +78,7 @@ class test_A_Models(unittest.TestCase):
             # a task called 'Test Entry' already exists from a prior test
             except IntegrityError:
                 # delete the task called 'Test Entry'
-                Entry.get_entry_from_slug('test-entry').delete_entry()
+                models.Entry.get_entry_from_slug('test-entry').delete_entry()
                 # try again (loop repeats, up to 5 times)
                 tries += 1
 
@@ -88,7 +92,7 @@ class test_A_Models(unittest.TestCase):
         # title
         entry.edit(title='Test Entry (Edited)')
         self.assertEqual(entry.title, 'Test Entry (Edited)')
-        self.assertEqual(models.Entry.slugify_title(entry), 'test-entry-edited')
+        self.assertEqual(entry.slugify_title(), 'test-entry-edited')
 
         # make sure if we call an entry by the slug, the right one comes up
         self.assertEqual(
@@ -98,7 +102,7 @@ class test_A_Models(unittest.TestCase):
 
         # date
         entry.edit(date='1985-7-3')
-        self.assertEqual(entry.get_datetime_string(), '1985-7-3')
+        self.assertEqual(entry.get_datetime_string(), '1985-07-03')
         self.assertEqual(entry.get_date_string(), 'July 03, 1985')
 
         # time spent
@@ -131,6 +135,11 @@ class test_A_Models(unittest.TestCase):
         entry.delete_entry()
 
 
+def mouseToAndClick(element):
+    ActionChains(driver).move_to_element(element).click(
+        element).perform()
+
+
 # test models and views separately.
 class test_B_views(unittest.TestCase):
 
@@ -140,6 +149,53 @@ class test_B_views(unittest.TestCase):
             flask_journal.__name__,
             'flask_journal'
         )
+
+
+class selenium_login(unittest.TestCase):
+    def test_C_user_login(self):
+        driver.get(ENVIRONMENTS['Debug']+'login')
+        username_field = driver.find_element_by_css_selector(
+            '#username')
+        password_field = driver.find_element_by_css_selector(
+            '#password')
+        submit_button = driver.find_element_by_css_selector(
+            '#submit')
+        username_field.clear()
+        mouseToAndClick(username_field)
+        username_field.send_keys(
+            'Mhunterak')
+        password_field.clear()
+        mouseToAndClick(password_field)
+        password_field.send_keys(
+            'password')
+        mouseToAndClick(submit_button)
+
+        self.assertTrue(driver.find_element_by_css_selector(
+            '.flashes').is_displayed())
+
+        logout_button = driver.find_element_by_xpath(
+            "//*[contains(text(), 'Log Out')]")
+
+        self.assertTrue(logout_button.is_displayed())
+        mouseToAndClick(logout_button)
+
+ENVIRONMENTS = {
+        'Debug': (
+            'http://local:8000/'),
+        # 'Alpha': 'none',
+        # 'Beta': 'none',
+        # 'Production': 'http://mhunterak.github.io/',
+    }
+BROWSERS = {
+    'Chrome': webdriver.Chrome(),
+    # 'Firefox': webdriver.Firefox()
+    }
+for browser in BROWSERS.keys():
+    driver = BROWSERS[browser]
+    BROWSER = browser
+
+    suite = unittest.TestLoader().loadTestsFromTestCase(selenium_login)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
 
 if __name__ == '__main__':  # pragma: no cover
