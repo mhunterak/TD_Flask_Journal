@@ -87,7 +87,7 @@ def login():
         next = request.args.get('next')
         # try to log them in
         # log them in
-        if User.login_user(
+        if User.login(
                 request.form['username'],
                 request.form['password']):
             # show login message

@@ -68,10 +68,10 @@ class User(UserMixin, BaseModel):
             password=generate_password_hash(password),
         )
 
-    @classmethod
+    @staticmethod
     # main class method for logging in a user
     # checks for a user, and verifies their password
-    def login_user(self, username, password):
+    def login(username, password):
         user = User.get(User.username == username)
         if check_password_hash(user.password, password):
             login_user(user, remember=True)
@@ -141,9 +141,9 @@ class Entry(BaseModel):
     def edit(
             self,
             # Title
-            title,
+            title='',
             # Date
-            date,
+            date='',
             # Time Spent
             time_spent=0,
             # What You Learned
@@ -189,6 +189,8 @@ class Entry(BaseModel):
         """Generates an ASCII-only slug."""
         result = []
         for word in _punct_.split(text.lower()):
+            word = bytearray(word, 'utf-8')
+            word = word.decode('utf-8')
             word = normalize('NFKC', word)
             if word:
                 result.append(word)
@@ -273,14 +275,15 @@ class Entry(BaseModel):
         self,
         tagname,
     ):
-
         existing_tags = Tag.select().where(
-            (Tag.tagged_post == self.id)
+            (Tag.tagged_post == self)
         )
+
         for tag in existing_tags:
             if tag.tagname == tagname:
                 return tag
-        return Tag.create_tag(
+
+        return Tag.create(
             tagname=tagname,
             tagged_post=self,
         )
