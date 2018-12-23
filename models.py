@@ -1,14 +1,11 @@
 '''
-Python Web Development Techdegree
-Project 5 - Flask Journal
-by Maxwell Hunter
-follow me on GitHub @mHunterAK
+models holds the object blueprints, and method for initializing the database
 
-    I am aiming for the
-    Exceeds Expectations grade on this project!
+I am aiming for the
+Exceeds Expectations grade on this project!
 
-    models.py is the lowest level script,
-    and is only ever imported from higher level script flask_journal.py (views)
+models.py is the lowest level script,
+and is only ever imported from higher level script flask_journal.py (views)
 
 '''
 # Core
@@ -23,7 +20,6 @@ from flask_bcrypt import (
 from flask_login import UserMixin, login_user, logout_user  # pragma: no cover
 from peewee import (Model, SqliteDatabase,
                     DateTimeField, TextField, IntegerField, ForeignKeyField,
-                    InterfaceError,
                     )  # pragma: no cover
 
 # Global variables
@@ -45,13 +41,17 @@ MODELS
 
 # create a base model, since every entry uses the same database
 class BaseModel(Model):
+    '''This Model holds the common database info for
+Tag and Entry models'''
     # database info
     class Meta:
         database = DATABASE
+        order_by = ('-id', )
 
 
-# create a Peewee model class for Users
+# Peewee model class for Users
 class User(UserMixin, BaseModel):
+    '''User holds username and password - both case sensitive'''
     # username must be unique
     username = TextField(
         unique=True)
@@ -61,6 +61,7 @@ class User(UserMixin, BaseModel):
 
     @classmethod
     def create_user(self, username, password):
+        '''Creates an instance of a User with (username, password)'''
         return self.create(
             username=username,
             # save the user's password as a hash, so no one can hack the
@@ -69,9 +70,11 @@ class User(UserMixin, BaseModel):
         )
 
     @staticmethod
-    # main class method for logging in a user
-    # checks for a user, and verifies their password
     def login(username, password):
+        '''this is the main class method for logging in a User
+
+Tries to log in based on provided username and password.
+it checks for a user matching the username, and then verifies their password'''
         user = User.get(User.username == username)
         if check_password_hash(user.password, password):
             login_user(user, remember=True)
@@ -80,34 +83,35 @@ class User(UserMixin, BaseModel):
 
     @classmethod
     def logout(self):
+        '''Logs out the user'''
         return logout_user()
 
 
-# create a Peewee model class for journal entries.
 class Entry(BaseModel):
-    # Title
+    '''Peewee model class for journal entries
+Entry.title = Title of the entry
+Entry.date = Date for the entry
+Entry.time_spent = Time spent, in minutes, for the entry
+Entry.date = Date for the entry
+Entry.learned (optional) = What You Learned, in paragraph form
+Entry.resources (optional) = Resources to Remember (html friendly)
+)
+    '''
     title = TextField(
         unique=True,
         null=False,
     )
-    # Date
     date = DateTimeField(
         null=False
     )
-    # Time Spent
     time_spent = IntegerField()
-    # What You Learned
     learned = TextField(
-        # can be blank
         null=True,
     )
-    # Resources to Remember
     resources = TextField(
-        # can be blank
         null=True,
     )
 
-    # override the ability to add a journal entry
     @classmethod
     def create_entry(
         self,
@@ -117,7 +121,10 @@ class Entry(BaseModel):
         learned,  # What You Learned
         resources,  # Resources to Remember
             ):
-        try:
+            ''' This function overrides the default create function
+to create a new journal entry. Does some standardization as well,
+like on date and resources.
+'''
             return Entry.create(
                 # Title
                 title=title,
@@ -133,41 +140,29 @@ class Entry(BaseModel):
                 # Resources to Remember
                 resources=Markup(resources)
             )
-        except InterfaceError:
-            print("peewee had an InterfaceError.")
-
-    # Add the ability to edit a journal entry
 
     def edit(
             self,
-            # Title
             title='',
-            # Date
             date='',
-            # Time Spent
             time_spent=0,
-            # What You Learned
             learned="",
-            # Resources to Remember
             resources="",
-    ):
-        # only update fields that were changed
-        # title
+            ):
+        '''this function is for editing a journal entry.
+Only fields that were changed are updated.
+        '''
         if title:
             self.title = title
-        # date
         if date:
             self.date = dt.strptime(
                 date,
                 '%Y-%m-%d',
                 )
-        # time spent
         if time_spent:
             self.time_spent = time_spent
-        # What You Learned
         if learned:
             self.learned = learned
-        # Resources to Remember
         if resources:
             self.resources = resources
         # save back into the database
@@ -175,18 +170,20 @@ class Entry(BaseModel):
         # return success if no errors occur
         return True
 
-    # returns the title in slugified form
     def slugify_title(self):
+        '''this function returns the Entry's title in slugified form'''
         return self.slugify(
             str(self.title)
             )
 
-    # turns ugly URL`s into nice slug
-    # based on code by Amin Ronacher - Generating Slugs (2010-05-03)
-    # retreieved from http://flask.pocoo.org/snippets/5/
     @staticmethod
     def slugify(text):
-        """Generates an ASCII-only slug."""
+        """This function Generates an ASCII-only slug.
+(turns ugly URL`s into nice slug)
+
+based on code by Amin Ronacher - Generating Slugs (2010-05-03)
+retreieved from http://flask.pocoo.org/snippets/5/
+"""
         result = []
         for word in _punct_.split(text.lower()):
             word = bytearray(word, 'utf-8')
@@ -199,55 +196,47 @@ class Entry(BaseModel):
         )
 
     @staticmethod
-    # retrieves an entry based on its slug
     def get_entry_from_slug(slug):
+        '''this function returns an entry object based on its slugified title
+'''
         entries = Entry.select()
         for entry in entries:
             if entry.slugify_title() == slug:
                 return entry
 
-    # get the datetime string (2016-01-31 format)
     def get_datetime_string(self):
-        # get date from datefield
+        '''this function returns the datetime string in '2016-01-31' format)'''
         return self.date.strftime('%Y-%m-%d')
 
-    # from the entry model, return the date as a formatted string
     def get_date_string(self):
-        # get date from database
-        # saved as a string, convert it do datetime
-        try:
-            date_as_datetime = dt.strptime(self.date, "%Y-%m-%d")
-        # if it's already a datetime (it should be)
-        except TypeError:
-            date_as_datetime = self.date
+        '''this function return the date as a formatted string.
+gets the date from database-
+it's saved as a datetime, convert it into readable string'''
+        date_as_datetime = self.date
         return date_as_datetime.strftime(
                 # display formated date
                 "%B %d, %Y"
                 )
 
-    # converts minutes into larger time increments when appropriate
     def display_time_spent(self):
-        # minutes
+        ''' This function converts minutes
+into larger time increments when appropriate
+
+numbers thanks to:
+https://www.quora.com/How-many-minutes-are-there-in-a-year'''
         if self.time_spent < 60:
             return '{} minutes'.format(self.time_spent)
-        # hours
         if self.time_spent < 1440:
             return '{} hours'.format(self.time_spent / 60)
-        # days
         if self.time_spent < 10080:
             return '{} days'.format(self.time_spent / 1440)
-        # weeks
         if self.time_spent < 44640:
             return '{} weeks'.format(self.time_spent / 10080)
-        # years
         else:
-            # numbers thanks to:
-            # https://www.quora.com/How-many-minutes-are-there-in-a-year
             return '{} years'.format(self.time_spent / 525949)
 
-    # Add the ability to delete a journal entry
     def delete_entry(self):
-        # goodbye, cruel world
+        '''This function deletes a journal entry'''
         with DATABASE.atomic():
             tags = Tag.select().where(Tag.tagged_post == self)
             for tag in tags:
@@ -255,6 +244,11 @@ class Entry(BaseModel):
             self.delete_instance()
 
     def add_tags(self, inputstr):
+        '''This function adds tags to the entry it was called from,
+separated by commas
+
+Example: entry.add_tags('foo, bar')
+'''
         # separate by comma
         tags = inputstr.split(',')
         for i, tagstr in enumerate(tags):
@@ -289,12 +283,14 @@ class Entry(BaseModel):
         )
 
     def get_tags(self):
+        '''this function returns all the tags f
+or the entry it was called from'''
         return Tag.select().where(Tag.tagged_post == self).order_by(
             Tag.tagname.asc())
 
 
-# TODONE XC: Add tags to journal entries in the model.
 class Tag(BaseModel):
+    '''This class adds tags to journal entries in the model.'''
     tagname = TextField(
         null=False
     )
@@ -303,10 +299,8 @@ class Tag(BaseModel):
         related_name='tag',
     )
 
-    def create_tag(
-        tagname,
-        tagged_post
-    ):
+    def create_tag(tagname, tagged_post):
+        '''This function creates the tag instance'''
         return Tag.create(
             tagname=tagname,
             tagged_post=tagged_post,
@@ -314,25 +308,28 @@ class Tag(BaseModel):
 
 
 def initialize():
+    '''This function initializes the database, and sets up default entries'''
     # open database connection
     DATABASE.connect()
     # create tables, if they don't exist
     DATABASE.create_tables([Entry, User, Tag], safe=True)
     # close database connection
     DATABASE.close()
-
+    # add the default content
     setup_dummy_content()
     # return success
     return True
 
 
 def setup_dummy_content():
-    # if dummy data is not available (No Entries Available)
+    '''This function creates the default entries'''
+    # if default data is not available (No Entries Available)
     try:
         Entry.get()
     except Entry.DoesNotExist:
         print('No Entries Available!')
         print('Initializing default entries')
+        # define the defaults
         default_entries = [
             [
                 "The best day I've ever had",
@@ -355,7 +352,7 @@ scelerisque sapien.''',
             [
                 "The absolute worst day I've ever had",
                 '2016-01-31',
-                900,
+                800,
                 '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
 Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
@@ -368,7 +365,7 @@ scelerisque sapien.''',
             [
                 'That time at the mall',
                 '2016-01-31',
-                900,
+                700,
                 '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
 Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
@@ -381,7 +378,7 @@ scelerisque sapien.''',
             [
                 "Dude, where's my car?",
                 '2016-01-31',
-                900,
+                600,
                 '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 Nunc ut rhoncus felis, vel tincidunt neque. \nCras egestas ac ipsum in posuere.
 Fusce suscipit, libero id malesuada placerat, orci velit semper metus, quis
@@ -393,7 +390,7 @@ scelerisque sapien.''',
             ],
         ]
 
-        # Add default entries
+        # Add default entries to database
         for entry in default_entries:
             Entry.create_entry(
                 title=entry[0],
@@ -407,6 +404,7 @@ scelerisque sapien.''',
         entry = Entry.get_entry_from_slug(
             'the-best-day-i-ve-ever-had')
         entry.add_tags('best, day')
+
         entry = Entry.get_entry_from_slug(
             'the-absolute-worst-day-i-ve-ever-had')
         entry.add_tags('worst, day')
